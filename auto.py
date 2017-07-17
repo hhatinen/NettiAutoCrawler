@@ -54,7 +54,7 @@ class NettiAutoParser(HTMLParser):
 
 
     def handle_endtag(self, tag):
-        if tag == 'div' or tag == 'span':
+        if tag == 'div' or tag == 'span' or tag == 'b':
             if self.in_data_box == True:
                 self.data_box_lvl -= 1
                 if self.data_box_lvl == 0:
@@ -135,8 +135,7 @@ while not last_page:
     url0 = url + "&page=" + str(page)
     result, last_page = append_url(url0, prev)
     page = page+1
-    #time.sleep(2)
-    last_page = True
+    time.sleep(2)
 
 with open('cars.csv', 'w') as csvfile:
     fieldnames_set = Set()
@@ -144,7 +143,10 @@ with open('cars.csv', 'w') as csvfile:
         for rowkey in row.keys():
             fieldnames_set.add(rowkey)
     fieldnames = fieldnames_set
+    print "fieldnames=" + str(fieldnames)
     writer = csv.DictWriter(csvfile, fieldnames=list(fieldnames))
+
+    print "writing " + str(len(result)) + " results"
 
     writer.writeheader()
     for x in result.values():

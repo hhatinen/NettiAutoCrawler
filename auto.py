@@ -25,7 +25,7 @@ class NettiAutoParser(HTMLParser):
         self.result = {}
 
     def handle_starttag(self, tag, attrs):
-        if tag == 'div' or tag == 'span':
+        if tag == 'div' or tag == 'span' or tag == 'b':
             if not self.in_data_box:
                 if any(x[0] == 'class' and x[1].startswith('listing') for x in attrs):
                     #print "Started"
@@ -36,9 +36,9 @@ class NettiAutoParser(HTMLParser):
                     self.link_read = False
             else:
                 self.data_box_lvl += 1
-        if any(x[0] == 'class' for x in attrs):
-            self.previous_class = self.active_class
-            self.active_class = next(x[1] for x in attrs if x[0] == 'class')
+            if any(x[0] == 'class' for x in attrs):
+                self.previous_class = self.active_class
+                self.active_class = next(x[1] for x in attrs if x[0] == 'class')
         if self.in_data_box:
             if tag == 'a' and any(x[0] == 'href' for x in attrs) and not self.link_read:
                 url = next(x[1] for x in attrs if x[0] == 'href')
@@ -135,7 +135,8 @@ while not last_page:
     url0 = url + "&page=" + str(page)
     result, last_page = append_url(url0, prev)
     page = page+1
-    time.sleep(2)
+    #time.sleep(2)
+    last_page = True
 
 with open('cars.csv', 'w') as csvfile:
     fieldnames_set = Set()

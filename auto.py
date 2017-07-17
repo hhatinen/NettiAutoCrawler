@@ -1,5 +1,6 @@
 from sets import Set
 from HTMLParser import HTMLParser
+import sys
 import os.path
 import urllib2
 import re
@@ -7,8 +8,19 @@ import csv
 import time
 import datetime
 
+reload(sys)
+sys.setdefaultencoding('UTF8')
+
 #url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152135976&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?qs=Y?id=152135976@tb=tmp_find_agent&id_model=954'
 #print feeddata
+
+counter_began = 0
+counter_end = 0
+
+url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152153857&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?qs=Y?id=152153857@tb=tmp_find_agent'
+HAS_RADAR=True
+HAS_CRUISE=True
+
 
 class NettiAutoParser(HTMLParser):
 
@@ -25,14 +37,18 @@ class NettiAutoParser(HTMLParser):
         self.result = {}
 
     def handle_starttag(self, tag, attrs):
+        global counter_began, HAS_CRUISE, HAS_RADAR
         if tag == 'div' or tag == 'span' or tag == 'b':
             if not self.in_data_box:
                 if any(x[0] == 'class' and x[1].startswith('listing') for x in attrs):
                     #print "Started"
                     self.data_box_lvl = 1
                     self.in_data_box = True;
+                    counter_began = counter_began + 1
                     self.car_data = {}
                     self.car_data["Dealership"] = False
+                    self.car_data["Acc_CruiseControl"] = HAS_CRUISE
+                    self.car_data["Acc_Radar"] = HAS_RADAR
                     self.link_read = False
             else:
                 self.data_box_lvl += 1
@@ -44,16 +60,13 @@ class NettiAutoParser(HTMLParser):
                 url = next(x[1] for x in attrs if x[0] == 'href')
                 self.car_data["url"] = url
                 self.link_read = True
-                id = ""
-                n = -1
-                while url[n].isdigit():
-                    id = url[n] + id
-                    n = n-1
+                id = url[25:]
                 self.car_data["id"] = id
                 self.car_data["last_seen"] = datetime.datetime.now().strftime('%d.%m.%Y')
 
 
     def handle_endtag(self, tag):
+        global counter_end
         if tag == 'div' or tag == 'span' or tag == 'b':
             if self.in_data_box == True:
                 self.data_box_lvl -= 1
@@ -65,6 +78,7 @@ class NettiAutoParser(HTMLParser):
                         self.car_data["first_seen"] = self.result[self.car_data["id"]]["first_seen"]
 
                     self.result[self.car_data["id"]] = self.car_data
+                    counter_end = counter_end + 1
                     self.in_data_box = False
 
     def handle_data(self, data):
@@ -81,10 +95,11 @@ class NettiAutoParser(HTMLParser):
             elif self.active_class == 'make_model_link':
                 self.car_data["Make"] = data[:data.find(' ')].strip()
                 self.car_data["Model"] = data[data.find(' '):].strip()
+                #print data + " => " + self.car_data["Make"] + " " + self.car_data["Model"];
             elif self.active_class == 'eng_size' and data.strip() != '':
                 self.car_data["Engine"] = data.strip()[1:-1].replace(".", ",")
             elif self.active_class == 'main_price' and data.strip() != '':
-                self.car_data["Price"] = int(data.replace(' ', ''))
+                self.car_data["Price"] = data.replace(' ', '')
             elif self.active_class == "checkLnesFlat" and data.strip() != '':
                 info = data.strip()
                 index = 1000
@@ -97,7 +112,7 @@ class NettiAutoParser(HTMLParser):
                 elif data == "Automaatti" or data == "Manuaali":
                     self.car_data["Gears"] = data
                 elif data.strip().isdigit():
-                    self.car_data["Year"] = int(data.strip())
+                    self.car_data["Year"] = data.strip()
             if "LIIKE" in data:
                 self.car_data["Dealership"] = True
             #print "Data for " + self.active_class + " = \'" + data + "\'"
@@ -127,7 +142,9 @@ if os.path.isfile('cars.csv'):
         for row in reader:
             prev[row["id"]] = row
 
-url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152135976&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?id=152135976@posted_by=@tb=tmp_find_agent'
+#url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152135976&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?id=152135976@posted_by=@tb=tmp_find_agent'
+#url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152147930&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?qs=Y?id=152147930@tb=tmp_find_agent&id_model=m84'
+#url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152153705&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?qs=Y?id=152153705@tb=tmp_find_agent'
 
 last_page = False
 page = 1
@@ -135,7 +152,9 @@ while not last_page:
     url0 = url + "&page=" + str(page)
     result, last_page = append_url(url0, prev)
     page = page+1
-    time.sleep(2)
+    time.sleep(1)
+
+print str(counter_began) + " <-> " + str(counter_end)
 
 with open('cars.csv', 'w') as csvfile:
     fieldnames_set = Set()

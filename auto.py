@@ -17,9 +17,13 @@ sys.setdefaultencoding('UTF8')
 counter_began = 0
 counter_end = 0
 
-url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152153857&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?qs=Y?id=152153857@tb=tmp_find_agent'
+#url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152153857&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?qs=Y?id=152153857@tb=tmp_find_agent'
+#url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152153857&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?id=152153857@posted_by=@tb=tmp_find_agent'
+#url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152153857&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?id=152153857@posted_by=@tb=tmp_find_agent'
+#url = 'https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152153857&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?id=152153857@posted_by=@tb=tmp_find_agent'
+url='https://www.nettiauto.com/listAdvSearchFindAgent.php?id=152162774&tb=tmp_find_agent&PN[0]=adv_search&PL[0]=advSearch.php?id=152162774@posted_by=@tb=tmp_find_agent'
 HAS_RADAR=True
-HAS_CRUISE=True
+HAS_CRUISE=False
 
 
 class NettiAutoParser(HTMLParser):
@@ -47,8 +51,6 @@ class NettiAutoParser(HTMLParser):
                     counter_began = counter_began + 1
                     self.car_data = {}
                     self.car_data["Dealership"] = False
-                    self.car_data["Acc_CruiseControl"] = HAS_CRUISE
-                    self.car_data["Acc_Radar"] = HAS_RADAR
                     self.link_read = False
             else:
                 self.data_box_lvl += 1
@@ -74,7 +76,11 @@ class NettiAutoParser(HTMLParser):
                     #print str(self.car_data)
                     if not self.car_data["id"] in self.result:
                         self.car_data["first_seen"] = datetime.datetime.now().strftime('%d.%m.%Y')
+		    	self.car_data["Acc_CruiseControl"] = HAS_CRUISE
+		    	self.car_data["Acc_Radar"] = HAS_RADAR
                     else:
+		    	self.car_data["Acc_CruiseControl"] = self.result[self.car_data["id"]]["Acc_CruiseControl"]
+		    	self.car_data["Acc_Radar"] = self.result[self.car_data["id"]]["Acc_Radar"]
                         self.car_data["first_seen"] = self.result[self.car_data["id"]]["first_seen"]
 
                     self.result[self.car_data["id"]] = self.car_data
